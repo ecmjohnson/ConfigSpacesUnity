@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
 public class Generate : MonoBehaviour
 {
@@ -53,6 +54,7 @@ public class Generate : MonoBehaviour
 
 	IEnumerator GenerateConfigSpace ()
 	{
+		bool[,,] obsSpace = new bool[N, N, N];
 		// Step amounts for x, y, and theta
 		float deltaX = 2.0f * extentsX / N;
 		float deltaY = 2.0f * extentsY / N;
@@ -71,13 +73,35 @@ public class Generate : MonoBehaviour
 					_transform.rotation = rotation;
 					yield return new WaitForFixedUpdate ();
 					// Check if there is an obstacle here
-					if (IsObstacleSpace ()) {
+					obsSpace [i, j, k] = IsObstacleSpace ();
+				}
+			}
+		}
+		// Prune surrounded elements
+		bool[,,] oldObsSpace = new bool[N, N, N];
+		Array.Copy (obsSpace, oldObsSpace, N * N * N);
+		int newObsCount = 0;
+		for (int i = 1; i < N-1; i++) {
+			for (int j = 1; j < N-1; j++) {
+				for (int k = 1; k < N-1; k++) {
+					if (oldObsSpace [i - 1, j, k] && oldObsSpace [i + 1, j, k]
+					    && oldObsSpace [i, j - 1, k] && oldObsSpace [i, j + 1, k]
+					    && oldObsSpace [i, j, k - 1] && oldObsSpace [i, j, k + 1]) {
+						obsSpace [i, j, k] = false;
+					}
+				}
+			}
+		}
+		// Create the objects
+		for (int i = 1; i < N-1; i++) {
+			for (int j = 1; j < N-1; j++) {
+				for (int k = 1; k < N-1; k++) {
+					if (obsSpace [i, j, k]) {
 						// Create the object
 						GameObject go = Instantiate (spaceObject, _configParent);
 						Transform transform = go.GetComponent<Transform> ();
-						if (transform) {
+						if (transform)
 							transform.position = new Vector3 (i, j, k);
-						}
 					}
 				}
 			}
